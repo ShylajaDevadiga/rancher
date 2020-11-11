@@ -20,11 +20,15 @@ RANCHER_K3S_WORKER_FLAGS = os.environ.get("RANCHER_K3S_WORKER_FLAGS", "agent")
 RANCHER_QA_SPACE = os.environ.get("RANCHER_QA_SPACE", "qa.rancher.space.")
 RANCHER_EC2_INSTANCE_CLASS = os.environ.get("RANCHER_EC2_INSTANCE_CLASS",
                                             "t3a.medium")
+RANCHER_RDS_AVAILABILITY_ZONES = os.environ.get("RANCHER_RDS_AVAILABILITY_ZONES",
+                                            RANCHER_AVAILABILITY_ZONE)
+RANCHER_RDS_ENVIRONMENT = os.environ.get("RANCHER_RDS_ENVIRONMENT", "dev")
 
 RANCHER_EXTERNAL_DB = os.environ.get("RANCHER_EXTERNAL_DB", "mysql")
 RANCHER_DB_TYPE = os.environ.get("RANCHER_DB_TYPE")
 RANCHER_EXTERNAL_DB_VERSION = os.environ.get("RANCHER_EXTERNAL_DB_VERSION")
 RANCHER_DB_GROUP_NAME = os.environ.get("RANCHER_DB_GROUP_NAME")
+RANCHER_RDS_ENGINE_MODE = os.environ.get("RANCHER_RDS_ENGINE_MODE", "")
 
 RANCHER_INSTANCE_CLASS = os.environ.get("RANCHER_INSTANCE_CLASS",
                                         "db.t2.micro")
@@ -104,6 +108,10 @@ def create_multiple_control_cluster():
         RANCHER_DB_TYPE = "mysql"
         RANCHER_EXTERNAL_DB_VERSION = "10.3.20" if not RANCHER_EXTERNAL_DB_VERSION else RANCHER_EXTERNAL_DB_VERSION
         RANCHER_DB_GROUP_NAME = "default.mariadb10.3" if not RANCHER_DB_GROUP_NAME else RANCHER_DB_GROUP_NAME
+    elif RANCHER_EXTERNAL_DB == "aurora-mysql":
+        RANCHER_DB_TYPE = "mysql"
+        RANCHER_EXTERNAL_DB_VERSION = "5.7.mysql_aurora.2.09.0" if not RANCHER_EXTERNAL_DB_VERSION else RANCHER_EXTERNAL_DB_VERSION
+        RANCHER_DB_GROUP_NAME = "default.aurora-mysql5.7" if not RANCHER_DB_GROUP_NAME else RANCHER_DB_GROUP_NAME
     elif RANCHER_EXTERNAL_DB == "postgres":
         RANCHER_DB_TYPE = "postgres"
         RANCHER_EXTERNAL_DB_VERSION = "11.5" if not RANCHER_EXTERNAL_DB_VERSION else RANCHER_EXTERNAL_DB_VERSION
@@ -134,6 +142,9 @@ def create_multiple_control_cluster():
                               'no_of_server_nodes': no_of_servers,
                               'server_flags': RANCHER_K3S_SERVER_FLAGS,
                               'qa_space': RANCHER_QA_SPACE,
+                              'environment': RANCHER_RDS_ENVIRONMENT,
+                              'availability_zones': RANCHER_RDS_AVAILABILITY_ZONES,
+                              'engine_mode': RANCHER_RDS_ENGINE_MODE,
                               'db': RANCHER_DB_TYPE})
     print("Creating cluster")
     tf.init()

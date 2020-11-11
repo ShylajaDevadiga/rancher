@@ -19,3 +19,6 @@ variable "no_of_server_nodes" {}
 variable "server_flags" {}
 variable "availability_zone" {}
 variable "sg_id" {}
+variable "environment" {}
+variable "availability_zones" {}
+variable "engine_mode" {}

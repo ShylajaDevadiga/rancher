@@ -1,5 +1,6 @@
 resource "aws_db_instance" "db" {
-  identifier = "${var.resource_name}-multinode-db"
+  count                = "${var.external_db != "aurora-mysql" ? 1 : 0}"
+  identifier           = "${var.resource_name}-multinode-db"
   allocated_storage    = 20
   storage_type         = "gp2"
   engine               = var.external_db
@@ -9,11 +10,38 @@ resource "aws_db_instance" "db" {
   parameter_group_name = var.db_group_name
   username             = var.username
   password             = var.password
+  availability_zone    = var.availability_zones
   tags = {
-    Environment = "dev"
+    Environment = var.environment
   }
- skip_final_snapshot = true
+  skip_final_snapshot = true
 }
+
+resource "aws_rds_cluster" "db" {
+  count                   = "${var.external_db == "aurora-mysql" ? 1 : 0}"
+  cluster_identifier      = "${var.resource_name}-db"
+  engine                  = var.external_db
+  engine_version          = var.external_db_version
+  availability_zones      = ["${var.availability_zones}"]
+  database_name           = "mydb"
+  master_username         = var.username
+  master_password         = var.password
+  engine_mode             = var.engine_mode
+  tags = {
+    Environment = var.environment
+  }
+  skip_final_snapshot = true
+}
+
+resource "aws_rds_cluster_instance" "db" {
+ count                  = "${var.external_db == "aurora-mysql" ? 1 : 0}"
+ cluster_identifier     = "${aws_rds_cluster.db[0].id}"
+ identifier             = "${var.resource_name}-instance1"
+ instance_class         = "${var.instance_class}"
+  engine                = "${aws_rds_cluster.db[0].engine}"
+  engine_version        = "${aws_rds_cluster.db[0].engine_version}"
+}
+
 
 resource "aws_instance" "master" {
   ami           = "${var.aws_ami}"
@@ -47,6 +75,11 @@ resource "aws_instance" "master" {
   provisioner "local-exec" {
     command = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.access_key} ${var.aws_user}@${aws_instance.master.public_ip}:/tmp/multinode_kubeconfig /tmp/"
   }
+
+  provisioner "local-exec" {
+    command = "sed s/127.0.0.1/\"${aws_route53_record.aws_route53.fqdn}\"/g /tmp/multinode_kubeconfig >/tmp/multinode_kubeconfig1"
+  }
+
 }
 
 resource "aws_instance" "master2-ha" {
@@ -75,7 +108,12 @@ resource "aws_instance" "master2-ha" {
 }
 
 data "template_file" "test" {
-  template = (var.db == "mysql" ? "mysql://${aws_db_instance.db.username}:${aws_db_instance.db.password}@tcp(${aws_db_instance.db.endpoint})/${aws_db_instance.db.name}": "postgres://${aws_db_instance.db.username}:${aws_db_instance.db.password}@${aws_db_instance.db.endpoint}/${aws_db_instance.db.name}")
+  template = (var.external_db == "postgres" ? "postgres://${aws_db_instance.db[0].username}:${aws_db_instance.db[0].password}@${aws_db_instance.db[0].endpoint}/${aws_db_instance.db[0].name}" : (var.external_db == "aurora-mysql" ? "mysql://${aws_rds_cluster.db[0].master_username}:${aws_rds_cluster.db[0].master_password}@tcp(${aws_rds_cluster.db[0].endpoint})/${aws_rds_cluster.db[0].database_name}" : "mysql://${aws_db_instance.db[0].username}:${aws_db_instance.db[0].password}@tcp(${aws_db_instance.db[0].endpoint})/${aws_db_instance.db[0].name}"))
+   depends_on = ["data.template_file.test_status"]
+}
+
+data "template_file" "test_status" {
+  template = (var.external_db == "postgres" ? "${aws_db_instance.db[0].endpoint}" : (var.external_db == "aurora-mysql" ? "${aws_rds_cluster_instance.db[0].endpoint}" : "${aws_db_instance.db[0].endpoint}"))
 }
 
 resource "aws_lb_target_group" "aws_tg_80" {
@@ -218,12 +256,6 @@ data "aws_route53_zone" "selected" {
   private_zone       = false
 }
 
-resource "null_resource" "update_kubeconfig" {
-  provisioner "local-exec" {
-    command = "sed s/127.0.0.1/\"${aws_route53_record.aws_route53.fqdn}\"/g /tmp/multinode_kubeconfig>/tmp/multinode_kubeconfig1"
-  }
-  depends_on = ["aws_instance.master"]
-}
 
 resource "null_resource" "store_fqdn" {
   provisioner "local-exec" {
@@ -237,20 +269,8 @@ output "Route53_info" {
   description = "List of DNS records"
 }
 
-output "db_instance_name" {
-  value = "${aws_db_instance.db.name}"
-}
-
-output "db_instance_username" {
-  value = "${aws_db_instance.db.username}"
-}
-
-output "db_instance_password" {
-  value = "${aws_db_instance.db.password}"
-}
-
 output "rds_instance_endpoint" {
-  value = "${aws_db_instance.db.endpoint}"
+  value = "${aws_db_instance.db[0].endpoint}"
 }
 
 output "hostnames" {
