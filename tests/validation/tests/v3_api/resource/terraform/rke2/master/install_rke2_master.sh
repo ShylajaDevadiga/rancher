@@ -13,6 +13,13 @@ cloud-provider-name:  "aws"
 node-name: ${hostname}
 EOF
 
+if [ ! -z "${7}" && [[ "${6} == *"apiVersion""*]]
+then
+   mkdir -p /var/lib/rancher/rke2/server/manifests
+   echo -e "${7}" >> /var/lib/rancher/rke2/server/manifests
+   cat /var/lib/rancher/rke2/server/manifests
+fi
+
 if [ ! -z "${6}" ] && [[ "${6}" == *":"* ]]
 then
    echo "${6}"
@@ -22,7 +29,7 @@ fi
 
 if [[ ${1} == *"rhel"* ]]
 then
-   subscription-manager register --auto-attach --username=${7} --password=${8}
+   subscription-manager register --auto-attach --username=${8} --password=${9}
    subscription-manager repos --enable=rhel-7-server-extras-rpms
 fi
 

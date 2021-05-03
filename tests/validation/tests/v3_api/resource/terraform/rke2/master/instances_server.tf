@@ -27,7 +27,7 @@ resource "aws_instance" "master" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/install_rke2_master.sh",
-      "sudo /tmp/install_rke2_master.sh ${var.node_os} ${aws_route53_record.aws_route53.fqdn} ${var.rke2_version} ${var.rke2_channel} ${var.cluster_type} \"${var.server_flags}\" ${var.username} ${var.password}",
+      "sudo /tmp/install_rke2_master.sh ${var.node_os} ${aws_route53_record.aws_route53.fqdn} ${var.rke2_version} ${var.rke2_channel} ${var.cluster_type} \"${var.server_flags}\" \"${var.custom_config}\" ${var.username} ${var.password}",
     ]
   }
   provisioner "local-exec" {

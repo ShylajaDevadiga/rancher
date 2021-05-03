@@ -22,3 +22,4 @@ variable "vpc_id" {}
 variable "username" {
   default = "username"
 }
+variable "custom_config" {}

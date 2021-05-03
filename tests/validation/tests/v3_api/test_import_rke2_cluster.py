@@ -28,6 +28,8 @@ RANCHER_RKE2_OPERATING_SYSTEM = os.environ.get("RANCHER_RKE2_OPERATING_SYSTEM")
 
 RANCHER_RKE2_RHEL_USERNAME = os.environ.get("RANCHER_RKE2_RHEL_USERNAME", "")
 RANCHER_RKE2_RHEL_PASSWORD = os.environ.get("RANCHER_RKE2_RHEL_PASSWORD", "")
+RANCHER_RKE2_CUSTOM_CONFIG = os.environ.get("RANCHER_RKE2_CUSTOM_CONFIG", "")
+
 RANCHER_RKE2_KUBECONFIG_PATH = DATA_SUBDIR + "/rke2_kubeconfig.yaml"
 
 
@@ -100,7 +102,8 @@ def create_rke2_multiple_control_cluster(cluster_type, cluster_version):
                               'qa_space': RANCHER_QA_SPACE,
                               'node_os': RANCHER_RKE2_OPERATING_SYSTEM,
                               'cluster_type': cluster_type,
-                              'iam_role': RANCHER_IAM_ROLE})
+                              'iam_role': RANCHER_IAM_ROLE,
+                              'custom_config': RANCHER_RKE2_CUSTOM_CONFIG})
     print("Creating cluster")
     tf.init()
     tf.plan(out="plan_server.out")
